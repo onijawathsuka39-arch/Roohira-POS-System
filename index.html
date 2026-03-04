@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roohira POS | Premium Dashboard</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23be185d'/><text x='50' y='50' dominant-baseline='middle' text-anchor='middle' font-family='Outfit' font-weight='bold' font-size='50' fill='white'>R</text></svg>">
+
+    <!-- Icons & Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Libraries -->
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/theme.js"></script>
+    <style>
+        .recent-sales-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        #revenueChart {
+            max-height: 350px;
+        }
+    </style>
+</head>
+
+<body class="fade-in">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo-section">
+            <div class="logo-box">
+                <i class="fas fa-gem text-white"></i>
+            </div>
+            <span class="logo-text">RUHIRA POS</span>
+        </div>
+
+        <nav class="nav-links">
+            <a href="index.html" class="nav-item active">
+                <i class="fas fa-th-large"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="pos.html" class="nav-item">
+                <i class="fas fa-shopping-cart"></i>
+                <span>POS Terminal</span>
+            </a>
+            <a href="sales.html" class="nav-item">
+                <i class="fas fa-history"></i>
+                <span>Sales History</span>
+            </a>
+            <a href="orders.html" class="nav-item">
+                <i class="fas fa-file-invoice"></i>
+                <span>Orders</span>
+            </a>
+            <a href="inventory.html" class="nav-item">
+                <i class="fas fa-boxes"></i>
+                <span>Inventory</span>
+            </a>
+            <a href="customers.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Customers</span>
+            </a>
+            <a href="notes.html" class="nav-item">
+                <i class="fas fa-sticky-note"></i>
+                <span>Notes & Tasks</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Reports</span>
+            </a>
+            <a href="analysis.html" class="nav-item">
+                <i class="fas fa-chart-bar"></i>
+                <span>Analysis</span>
+            </a>
+            <a href="settings.html" class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="nav-item" onclick="themeManager.toggle()" style="cursor:pointer;">
+                <i class="fas fa-sun theme-toggle-icon"></i>
+                <span>Theme Mode</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="header-top">
+            <div class="page-title">
+                <h1>Welcome Back, Admin</h1>
+                <p>Track your business performance in real-time</p>
+            </div>
+
+            <div class="user-profile">
+                <div class="user-info text-right mr-4 d-none d-md-block" style="text-align: right; margin-right: 12px;">
+                    <div style="font-weight: 600; font-size: 14px;">Onija Wathsuka</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Store Manager</div>
+                </div>
+                <div class="user-avatar"
+                    style="width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                    OW
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="value" id="revenue-stat">Rs. 0.00</div>
+                <div class="label">Total Revenue</div>
+                <div class="trend up">
+                    <i class="fas fa-arrow-up"></i> 12.5% <span>vs last month</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div class="value" id="profit-stat">Rs. 0.00</div>
+                <div class="label">Net Profit</div>
+                <div class="trend up">
+                    <i class="fas fa-arrow-up"></i> 8.2% <span>vs last month</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                    <i class="fas fa-shopping-bag"></i>
+                </div>
+                <div class="value" id="orders-stat">0</div>
+                <div class="label">Total Sales</div>
+                <div class="trend up">
+                    <i class="fas fa-arrow-up"></i> 5.4% <span>vs last month</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="value" id="low-stock-stat">0</div>
+                <div class="label">Low Stock items</div>
+                <div class="trend down">
+                    <i class="fas fa-triangle-exclamation"></i> Action required
+                </div>
+            </div>
+        </div>
+
+        <div class="recent-sales-grid">
+            <!-- Revenue Chart -->
+            <div class="content-wrapper">
+                <div class="table-header">
+                    <h2>Revenue Analysis</h2>
+                    <select class="btn btn-secondary" style="width: auto;">
+                        <option>Last 7 Days</option>
+                        <option>Last 30 Days</option>
+                        <option>This Year</option>
+                    </select>
+                </div>
+                <canvas id="revenueChart"></canvas>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="content-wrapper">
+                <div class="table-header">
+                    <h2>Quick Actions</h2>
+                </div>
+                <div class="quick-actions-list" style="display: flex; flex-direction: column; gap:12px;">
+                    <a href="pos.html" class="btn btn-primary" style="justify-content: center; padding: 16px;">
+                        <i class="fas fa-plus"></i> New Sale
+                    </a>
+                    <a href="inventory.html" class="btn btn-secondary" style="justify-content: center; padding: 16px;">
+                        <i class="fas fa-box"></i> Add Product
+                    </a>
+                    <a href="customers.html" class="btn btn-secondary" style="justify-content: center; padding: 16px;">
+                        <i class="fas fa-user-plus"></i> Add Customer
+                    </a>
+                    <div
+                        style="margin-top: 12px; padding: 16px; background: rgba(190, 24, 93, 0.05); border: 1px dashed var(--primary); border-radius: var(--radius-md); text-align: center;">
+                        <p style="font-size: 13px; color: var(--text-muted);">Next backup scheduled in</p>
+                        <h3 style="color: var(--primary);">02:45:10</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Table -->
+        <div class="content-wrapper" style="margin-top: 24px;">
+            <div class="table-header">
+                <h2>Recent Transactions</h2>
+                <a href="reports.html" class="btn btn-secondary">View All</a>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Bill ID</th>
+                            <th>Customer</th>
+                            <th>Items Summary</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentSalesTable">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 40px;">No recent
+                                transactions found</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JS Scripts -->
+    <script src="js/db.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load dashboard stats
+            const stats = await DB.getDashboardStats();
+            document.getElementById('revenue-stat').textContent = `Rs. ${stats.totalRevenue.toLocaleString()}`;
+            document.getElementById('profit-stat').textContent = `Rs. ${stats.totalProfit.toLocaleString()}`;
+            document.getElementById('orders-stat').textContent = stats.totalOrders;
+            document.getElementById('low-stock-stat').textContent = stats.lowStockCount;
+
+            // Load recent sales
+            const sales = await DB.getAllSales();
+            const tableBody = document.getElementById('recentSalesTable');
+            if (sales.length > 0) {
+                tableBody.innerHTML = '';
+                sales.slice(0, 5).forEach(sale => {
+                    const itemsText = sale.items ? sale.items.map(i => i.name).join(', ') : 'N/A';
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td style="font-weight:600;">#${sale.id}</td>
+                        <td>${sale.customer || 'Guest'}</td>
+                        <td style="font-size:12px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${itemsText}">
+                            ${itemsText}
+                        </td>
+                        <td>Rs. ${sale.total.toLocaleString()}</td>
+                        <td>${new Date(sale.date).toLocaleDateString()}</td>
+                        <td><span class="badge badge-success">Completed</span></td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            // Dynamic Chart Logic
+            const salesData = await DB.getAllSales();
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                last7Days.push(d.toISOString().split('T')[0]);
+            }
+
+            const revenueMap = {};
+            last7Days.forEach(date => revenueMap[date] = 0);
+
+            salesData.forEach(sale => {
+                const date = sale.date.split('T')[0];
+                if (revenueMap.hasOwnProperty(date)) {
+                    revenueMap[date] += sale.total;
+                }
+            });
+
+            const chartLabels = last7Days.map(d => {
+                const date = new Date(d);
+                return date.toLocaleDateString('en-US', { weekday: 'short' });
+            });
+            const chartDataValues = last7Days.map(d => revenueMap[d]);
+
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Revenue (Rs)',
+                        data: chartDataValues,
+                        borderColor: '#be185d',
+                        backgroundColor: 'rgba(190, 24, 93, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#be185d',
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#18191c',
+                            titleColor: '#be185d',
+                            bodyColor: '#fff',
+                            borderColor: '#be185d',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function (context) {
+                                    return 'Total: Rs. ' + context.parsed.y.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: function (value) { return 'Rs. ' + value.toLocaleString(); }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

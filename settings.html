@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings | Ruhira POS</title>
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23be185d'/><text x='50' y='50' dominant-baseline='middle' text-anchor='middle' font-family='Outfit' font-weight='bold' font-size='50' fill='white'>R</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/theme.js"></script>
+    <style>
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .setting-info h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .setting-info p {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 40px;
+        }
+
+        .settings-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .s-nav-item {
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .s-nav-item:hover,
+        .s-nav-item.active {
+            background: var(--card-bg);
+            color: var(--primary);
+        }
+    </style>
+</head>
+
+<body class="fade-in">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo-section">
+            <div class="logo-box"><i class="fas fa-gem text-white"></i></div>
+            <span class="logo-text">RUHIRA POS</span>
+        </div>
+        <nav class="nav-links">
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-th-large"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="pos.html" class="nav-item">
+                <i class="fas fa-shopping-cart"></i>
+                <span>POS Terminal</span>
+            </a>
+            <a href="sales.html" class="nav-item">
+                <i class="fas fa-history"></i>
+                <span>Sales History</span>
+            </a>
+            <a href="orders.html" class="nav-item">
+                <i class="fas fa-file-invoice"></i>
+                <span>Orders</span>
+            </a>
+            <a href="inventory.html" class="nav-item">
+                <i class="fas fa-boxes"></i>
+                <span>Inventory</span>
+            </a>
+            <a href="customers.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Customers</span>
+            </a>
+            <a href="notes.html" class="nav-item">
+                <i class="fas fa-sticky-note"></i>
+                <span>Notes & Tasks</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Reports</span>
+            </a>
+            <a href="analysis.html" class="nav-item">
+                <i class="fas fa-chart-bar"></i>
+                <span>Analysis</span>
+            </a>
+            <a href="settings.html" class="nav-item active">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="nav-item" onclick="themeManager.toggle()" style="cursor:pointer;">
+                <i class="fas fa-sun theme-toggle-icon"></i>
+                <span>Theme Mode</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="header-top">
+            <div class="page-title">
+                <h1>System Settings</h1>
+                <p>Configure your shop profile and manage data backups</p>
+            </div>
+        </header>
+
+        <div class="settings-grid">
+            <aside class="settings-nav">
+                <a href="#" class="s-nav-item active">General Settings</a>
+                <a href="#" class="s-nav-item">Shop Profile</a>
+                <a href="#" class="s-nav-item">Data & Storage</a>
+                <a href="#" class="s-nav-item">Privacy & Security</a>
+
+                <div
+                    style="margin-top:20px; padding:15px; background:var(--success-glow); border-radius:12px; border:1px solid var(--success);">
+                    <div
+                        style="display:flex; align-items:center; gap:8px; color:var(--success); font-weight:700; font-size:12px;">
+                        <i class="fas fa-check-circle"></i> AUTO-SAVE ACTIVE
+                    </div>
+                    <p style="font-size:10px; color:var(--text-dim); margin-top:5px;">Your database is automatically
+                        updating on your local drive.</p>
+                </div>
+            </aside>
+
+            <div class="content-wrapper">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h3>Export System Data (JSON)</h3>
+                        <p>Generate a full system backup to move data to another computer.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="exportDB()"><i class="fas fa-file-export"></i> Backup
+                        Now</button>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h3>Export to Excel (CSV)</h3>
+                        <p>Download your sales history in Excel-compatible format.</p>
+                    </div>
+                    <button class="btn btn-primary" style="background:#16a34a; border-color:#16a34a; color:white;"
+                        onclick="DB.exportSalesToCSV()">
+                        <i class="fas fa-file-excel"></i> Download Excel
+                    </button>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h3>Visual Appearance</h3>
+                        <p>Switch between Dark and Light mode for better visibility.</p>
+                    </div>
+                    <select id="themeSelect" onchange="themeManager.setTheme(this.value)" style="width:150px;">
+                        <option value="dark">Dark Theme</option>
+                        <option value="light">Light Theme</option>
+                    </select>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h3>Restore from Backup</h3>
+                        <p>Import data from a previous backup file. <b>Warning: This will overwrite current data.</b>
+                        </p>
+                    </div>
+                    <label class="btn btn-secondary">
+                        <i class="fas fa-file-import"></i> Restore File
+                        <input type="file" id="importFile" hidden onchange="importDB(event)">
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h3>Shop Name</h3>
+                        <p>Update the shop title displayed on receipts.</p>
+                    </div>
+                    <input type="text" value="Ruhira Clothing Store" style="width:250px;">
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h3>Stock Alert Threshold</h3>
+                        <p>Notify when product stock falls below this number.</p>
+                    </div>
+                    <input type="number" value="5" style="width:100px;">
+                </div>
+
+                <div class="setting-row" style="border-bottom:none;">
+                    <div class="setting-info">
+                        <h3>Wipe All Data</h3>
+                        <p style="color:var(--danger);">Irreversibly delete all records from the system.</p>
+                    </div>
+                    <button class="btn btn-secondary" style="color:var(--danger); border-color:var(--danger);"
+                        onclick="wipeData()"><i class="fas fa-exclamation-triangle"></i> Factory Reset</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/db.js"></script>
+    <script>
+        async function exportDB() {
+            const data = {
+                inventory: await db.inventory.toArray(),
+                sales: await db.sales.toArray(),
+                customers: await db.customers.toArray(),
+                categories: await db.categories.toArray(),
+                exportedAt: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `RuhiraPOS_DB_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        async function importDB(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (confirm('Are you sure? This will wipe existing data and replace it with backup.')) {
+                        await db.inventory.clear();
+                        await db.sales.clear();
+                        await db.customers.clear();
+                        await db.categories.clear();
+
+                        await db.inventory.bulkAdd(data.inventory);
+                        await db.sales.bulkAdd(data.sales);
+                        await db.customers.bulkAdd(data.customers);
+                        await db.categories.bulkAdd(data.categories);
+
+                        alert('System restored successfully!');
+                        window.location.reload();
+                    }
+                } catch (err) {
+                    alert('Invalid backup file!');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function wipeData() {
+            if (confirm('CRITICAL: This will delete EVERYTHING. Are you 100% sure?')) {
+                await db.delete();
+                alert('Database wiped. The app will restart.');
+                window.location.reload();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentTheme = localStorage.getItem('pos-theme') || 'dark';
+            const themeSelect = document.getElementById('themeSelect');
+            if (themeSelect) themeSelect.value = currentTheme;
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory | Ruhira POS</title>
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23be185d'/><text x='50' y='50' dominant-baseline='middle' text-anchor='middle' font-family='Outfit' font-weight='bold' font-size='50' fill='white'>R</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/theme.js"></script>
+    <style>
+        .page-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .filter-section {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body class="fade-in">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo-section">
+            <div class="logo-box"><i class="fas fa-gem text-white"></i></div>
+            <span class="logo-text">RUHIRA POS</span>
+        </div>
+        <nav class="nav-links">
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-th-large"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="pos.html" class="nav-item">
+                <i class="fas fa-shopping-cart"></i>
+                <span>POS Terminal</span>
+            </a>
+            <a href="sales.html" class="nav-item">
+                <i class="fas fa-history"></i>
+                <span>Sales History</span>
+            </a>
+            <a href="orders.html" class="nav-item">
+                <i class="fas fa-file-invoice"></i>
+                <span>Orders</span>
+            </a>
+            <a href="inventory.html" class="nav-item active">
+                <i class="fas fa-boxes"></i>
+                <span>Inventory</span>
+            </a>
+            <a href="customers.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Customers</span>
+            </a>
+            <a href="notes.html" class="nav-item">
+                <i class="fas fa-sticky-note"></i>
+                <span>Notes & Tasks</span>
+            </a>
+            <a href="reports.html" class="nav-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Reports</span>
+            </a>
+            <a href="analysis.html" class="nav-item">
+                <i class="fas fa-chart-bar"></i>
+                <span>Analysis</span>
+            </a>
+            <a href="settings.html" class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="nav-item" onclick="themeManager.toggle()" style="cursor:pointer;">
+                <i class="fas fa-sun theme-toggle-icon"></i>
+                <span>Theme Mode</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="header-top">
+            <div class="page-title">
+                <h1>Inventory Management</h1>
+                <p>Track stocks, manage categories and prices</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-secondary" onclick="openModal('catModal')"><i class="fas fa-tag"></i>
+                    Categories</button>
+                <button class="btn btn-primary" onclick="openAddProductModal()"><i class="fas fa-plus"></i> Add
+                    Product</button>
+            </div>
+        </header>
+
+        <!-- Filters -->
+        <div class="filter-section">
+            <div class="filter-group">
+                <input type="text" id="searchInv" placeholder="Search by name..." oninput="filterInventory()">
+            </div>
+            <div class="filter-group">
+                <select id="catFilter" onchange="filterInventory()">
+                    <option value="all">All Categories</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <select id="stockFilter" onchange="filterInventory()">
+                    <option value="all">All Stocks</option>
+                    <option value="low">Low Stock (≤ 5)</option>
+                    <option value="out">Out of Stock</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Inventory Table -->
+        <div class="content-wrapper">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Category</th>
+                            <th>Size</th>
+                            <th>Stock</th>
+                            <th>Buy Price</th>
+                            <th>Sell Price</th>
+                            <th>Profit</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTable">
+                        <!-- Inventory rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Product Modal -->
+    <div class="modal-overlay" id="productModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Product</h2>
+                <button class="btn btn-secondary" onclick="closeModal('productModal')">×</button>
+            </div>
+
+            <form id="productForm">
+                <input type="hidden" id="prodId">
+                <div class="input-group">
+                    <label>Product Name</label>
+                    <input type="text" id="prodName" required>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px;">
+                    <div class="input-group">
+                        <label>Category</label>
+                        <select id="prodCat" required></select>
+                    </div>
+                    <div class="input-group">
+                        <label>Size</label>
+                        <input type="text" id="prodSize" placeholder="XL, 32, etc.">
+                    </div>
+                    <div class="input-group">
+                        <label>Initial Stock</label>
+                        <input type="number" id="prodStock" value="0" required>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                    <div class="input-group">
+                        <label>Buy Price (Rs)</label>
+                        <input type="number" id="prodBuy" step="0.01" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Sell Price (Rs)</label>
+                        <input type="number" id="prodSell" step="0.01" required>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Product Type</label>
+                    <select id="prodType">
+                        <option value="regular">Regular Item</option>
+                        <option value="package">Package / Bundle</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:16px;">
+                    SAVE PRODUCT
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div class="modal-overlay" id="catModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Manage Categories</h2>
+                <button class="btn btn-secondary" onclick="closeModal('catModal')">×</button>
+            </div>
+
+            <form id="catForm" style="display:flex; gap:8px; margin-bottom:24px;">
+                <input type="text" id="newCat" placeholder="Category Name" required style="flex:1;">
+                <button type="submit" class="btn btn-primary">ADD</button>
+            </form>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="catTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/db.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            await refreshInventory();
+            await refreshCategories();
+        });
+
+        async function refreshInventory() {
+            const items = await DB.getAllInventory();
+            renderInventory(items);
+        }
+
+        async function refreshCategories() {
+            const cats = await DB.getAllCategories();
+            const filter = document.getElementById('catFilter');
+            const select = document.getElementById('prodCat');
+            const table = document.getElementById('catTable');
+
+            filter.innerHTML = '<option value="all">All Categories</option>';
+            select.innerHTML = '<option value="">Select Category</option>';
+            table.innerHTML = '';
+
+            cats.forEach(c => {
+                filter.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                select.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                table.innerHTML += `
+                    <tr>
+                        <td>${c.name}</td>
+                        <td><button class="btn btn-secondary btn-sm" onclick="deleteCategory(${c.id})"><i class="fas fa-trash text-danger"></i></button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderInventory(items) {
+            const tbody = document.getElementById('inventoryTable');
+            tbody.innerHTML = '';
+
+            items.forEach(item => {
+                const profit = item.sellPrice - item.buyPrice;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="font-weight:600;">${item.name}</td>
+                    <td><span class="badge badge-warning" style="background:rgba(245, 158, 11, 0.1); color:#f59e0b;">${item.category}</span></td>
+                    <td><span class="badge badge-secondary" style="background:rgba(255,255,255,0.05); color:#94a3b8; border: 1px solid var(--border);">${item.size || '-'}</span></td>
+                    <td>
+                        <span class="badge ${item.stock <= 5 ? 'badge-danger' : 'badge-success'}">${item.stock}</span>
+                    </td>
+                    <td>Rs. ${item.buyPrice.toLocaleString()}</td>
+                    <td style="color:var(--primary); font-weight:700;">Rs. ${item.sellPrice.toLocaleString()}</td>
+                    <td style="color:var(--success);">Rs. ${profit.toLocaleString()}</td>
+                    <td class="action-btns">
+                        <button class="btn btn-secondary btn-sm" onclick="editProduct(${item.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-secondary btn-sm" onclick="deleteProduct(${item.id})"><i class="fas fa-trash text-danger"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function filterInventory() {
+            const search = document.getElementById('searchInv').value.toLowerCase();
+            const cat = document.getElementById('catFilter').value;
+            const stock = document.getElementById('stockFilter').value;
+
+            let items = await DB.getAllInventory();
+
+            if (search) items = items.filter(i => i.name.toLowerCase().includes(search));
+            if (cat !== 'all') items = items.filter(i => i.category === cat);
+            if (stock === 'low') items = items.filter(i => i.stock > 0 && i.stock <= 5);
+            if (stock === 'out') items = items.filter(i => i.stock <= 0);
+
+            renderInventory(items);
+        }
+
+        // Modals & Forms
+        function openAddProductModal() {
+            document.getElementById('modalTitle').textContent = 'Add New Product';
+            document.getElementById('productForm').reset();
+            document.getElementById('prodId').value = '';
+            document.getElementById('productModal').style.display = 'flex';
+        }
+
+        async function editProduct(id) {
+            const item = await DB.getInventoryById(id);
+            document.getElementById('modalTitle').textContent = 'Edit Product';
+            document.getElementById('prodId').value = item.id;
+            document.getElementById('prodName').value = item.name;
+            document.getElementById('prodCat').value = item.category;
+            document.getElementById('prodSize').value = item.size || '';
+            document.getElementById('prodStock').value = item.stock;
+            document.getElementById('prodBuy').value = item.buyPrice;
+            document.getElementById('prodSell').value = item.sellPrice;
+            document.getElementById('prodType').value = item.type;
+            document.getElementById('productModal').style.display = 'flex';
+        }
+
+        document.getElementById('productForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('prodId').value;
+            const data = {
+                name: document.getElementById('prodName').value,
+                category: document.getElementById('prodCat').value,
+                size: document.getElementById('prodSize').value,
+                stock: parseInt(document.getElementById('prodStock').value),
+                buyPrice: parseFloat(document.getElementById('prodBuy').value),
+                sellPrice: parseFloat(document.getElementById('prodSell').value),
+                type: document.getElementById('prodType').value
+            };
+
+            if (id) {
+                await DB.updateInventory(parseInt(id), data);
+            } else {
+                await DB.addInventory(data);
+            }
+
+            closeModal('productModal');
+            refreshInventory();
+        };
+
+        document.getElementById('catForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('newCat').value;
+            await DB.addCategory({ name });
+            document.getElementById('newCat').value = '';
+            refreshCategories();
+        };
+
+        async function deleteProduct(id) {
+            if (confirm('Delete this product permanently?')) {
+                await DB.deleteInventory(id);
+                refreshInventory();
+            }
+        }
+
+        async function deleteCategory(id) {
+            if (confirm('Delete this category?')) {
+                await db.categories.delete(id);
+                refreshCategories();
+            }
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Terminal | Ruhira POS</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23be185d'/><text x='50' y='50' dominant-baseline='middle' text-anchor='middle' font-family='Outfit' font-weight='bold' font-size='50' fill='white'>R</text></svg>">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/theme.js"></script>
+    <style>
+        .pos-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            height: calc(100vh - 140px);
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 12px;
+            padding: 4px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .product-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            text-align: center;
+        }
+
+        .product-card:hover {
+            border-color: var(--primary);
+            background: var(--card-hover);
+            transform: translateY(-4px);
+        }
+
+        .product-card .img-placeholder {
+            height: 60px;
+            background: var(--primary-glow);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--primary);
+        }
+
+        .product-card .p-name {
+            font-weight: 600;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .product-card .p-price {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 14px;
+        }
+
+        .product-card .p-size {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 600;
+            background: var(--border);
+            padding: 2px 6px;
+            border-radius: 4px;
+            align-self: center;
+        }
+
+        .product-card .p-stock {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .cart-section {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+        }
+
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+            margin: 16px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+
+        .cart-item-info h4 {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .cart-item-info p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .cart-totals {
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+
+        .total-row.grand {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .checkout-btn {
+            width: 100%;
+            justify-content: center;
+            padding: 16px;
+            font-size: 16px;
+            margin-top: 16px;
+        }
+
+        .category-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+
+        .cat-chip {
+            padding: 8px 16px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: var(--transition);
+        }
+
+        .cat-chip:hover,
+        .cat-chip.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 10px var(--primary-glow);
+        }
+
+        .backlist-alert {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 12px;
+            border-radius: var(--radius-md);
+            margin-bottom: 16px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body class="fade-in">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo-section">
+            <div class="logo-box">
+                <i class="fas fa-gem text-white"></i>
+            </div>
+            <span class="logo-text">RUHIRA POS</span>
+        </div>
+
+        <nav class="nav-links">
+            <a href="index.html" class="nav-item"><i class="fas fa-th-large"></i><span>Dashboard</span></a>
+            <a href="pos.html" class="nav-item active"><i class="fas fa-shopping-cart"></i><span>POS Terminal</span></a>
+            <a href="sales.html" class="nav-item"><i class="fas fa-history"></i><span>Sales History</span></a>
+            <a href="orders.html" class="nav-item"><i class="fas fa-file-invoice"></i><span>Orders</span></a>
+            <a href="inventory.html" class="nav-item"><i class="fas fa-boxes"></i><span>Inventory</span></a>
+            <a href="customers.html" class="nav-item"><i class="fas fa-users"></i><span>Customers</span></a>
+            <a href="notes.html" class="nav-item"><i class="fas fa-sticky-note"></i><span>Notes & Tasks</span></a>
+            <a href="reports.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Reports</span></a>
+            <a href="analysis.html" class="nav-item"><i class="fas fa-chart-bar"></i><span>Analysis</span></a>
+            <a href="settings.html" class="nav-item"><i class="fas fa-cog"></i><span>Settings</span></a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="nav-item" onclick="themeManager.toggle()" style="cursor:pointer;">
+                <i class="fas fa-sun theme-toggle-icon"></i>
+                <span>Theme Mode</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="header-top">
+            <div class="page-title">
+                <h1>POS Terminal</h1>
+                <p>Process your sales quickly and efficiently</p>
+            </div>
+
+            <div class="search-box" style="width: 300px;">
+                <input type="text" id="p-search" placeholder="Search products by name or code..."
+                    style="padding: 10px 16px;">
+            </div>
+        </header>
+
+        <div class="pos-grid">
+            <!-- Product Selection -->
+            <div class="content-wrapper" style="display: flex; flex-direction: column;">
+                <div class="category-filter" id="categoryTabs">
+                    <div class="cat-chip active" data-category="all">All Products</div>
+                    <!-- Categories will be injected here -->
+                </div>
+
+                <div class="product-grid" id="productGrid">
+                    <!-- Products will be injected here -->
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-dim);">
+                        <i class="fas fa-search" style="font-size: 40px; margin-bottom: 16px;"></i>
+                        <p>No products found. Add some in the Inventory page.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart Section -->
+            <div class="cart-section">
+                <div class="table-header" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                    <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                        <h3>Current Order</h3>
+                        <button class="btn btn-secondary" onclick="clearCart()"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                        <div style="font-size:11px; color:var(--text-muted);" id="order-id-display">ID: #0000</div>
+                        <div
+                            style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--success); font-weight:700;">
+                            <i class="fas fa-database"></i> AUTO-SAVING...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-top: 10px;">
+                    <label>Customer Name / ID</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="cust-name" list="cust-list" placeholder="Search Name, ID or Phone"
+                            style="flex:1;">
+                        <button class="btn btn-secondary" id="loyalty-tag"
+                            style="display:none; font-size:11px; padding:4px 8px; color:#f59e0b; border-color:#f59e0b;">
+                            <i class="fas fa-star"></i> <span id="loyalty-val">0</span>
+                        </button>
+                    </div>
+                    <datalist id="cust-list"></datalist>
+                </div>
+
+                <div class="backlist-alert" id="backlist-warning">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>WARNING: This customer is in the Blacklist!</span>
+                </div>
+
+                <div class="cart-items" id="cartItems">
+                    <!-- Cart items will be injected here -->
+                    <div style="text-align: center; padding: 40px; color: var(--text-dim);">
+                        <i class="fas fa-shopping-basket" style="font-size: 32px; margin-bottom: 12px;"></i>
+                        <p>Cart is empty</p>
+                    </div>
+                </div>
+
+                <div class="cart-totals">
+                    <div class="total-row">
+                        <span>Subtotal</span>
+                        <span id="sub-total">Rs. 0.00</span>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin: 8px 0;">
+                        <div class="input-group" style="margin-bottom:0;">
+                            <label style="font-size:11px;">Discount (%)</label>
+                            <input type="number" id="order-discount" value="0" min="0" max="100"
+                                oninput="updateCartUI()" style="padding:6px 10px;">
+                        </div>
+                        <div class="input-group" style="margin-bottom:0;">
+                            <label style="font-size:11px;">Delivery (Rs)</label>
+                            <input type="number" id="order-delivery" value="0" min="0" oninput="updateCartUI()"
+                                style="padding:6px 10px;">
+                        </div>
+                    </div>
+
+                    <div id="loyalty-section"
+                        style="display:none; margin-bottom: 12px; padding: 10px; background: rgba(245, 158, 11, 0.05); border: 1px dashed #f59e0b; border-radius: 8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:12px; color:#f59e0b; font-weight:600;">Use Loyalty Points (Value: Rs.
+                                <span id="max-pts-val">0</span>)</span>
+                            <button class="btn btn-secondary btn-sm" onclick="applyLoyalty()"
+                                style="font-size:10px; padding:2px 8px; border-color:#f59e0b; color:#f59e0b;">APPLY</button>
+                        </div>
+                        <input type="hidden" id="loyalty-applied-cash" value="0">
+                    </div>
+
+                    <div class="total-row grand">
+                        <span>Grand Total</span>
+                        <span id="grand-total">Rs. 0.00</span>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-top:16px;">
+                        <button class="btn btn-secondary" style="flex:1; justify-content:center;"
+                            onclick="saveDraftOrder()">
+                            <i class="fas fa-save"></i> DRAFT
+                        </button>
+                        <button class="btn btn-primary checkout-btn" id="pay-btn" disabled onclick="openCheckout()"
+                            style="flex:2; margin-top:0;">
+                            <i class="fas fa-check"></i> CHECKOUT
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Checkout Modal -->
+    <div class="modal-overlay" id="checkoutModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Complete Transaction</h2>
+                <button class="btn btn-secondary" onclick="closeModal('checkoutModal')">×</button>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 24px;">
+                <p style="color: var(--text-muted);">Amount to Pay</p>
+                <h1 style="font-size: 48px; color: var(--primary); font-weight: 700;" id="modal-total">Rs. 0.00</h1>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                <div class="input-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="cust-phone" placeholder="07x xxxxxxx">
+                </div>
+                <div class="input-group">
+                    <label>Delivery Method</label>
+                    <select id="delivery-method" onchange="handleDeliveryChange()">
+                        <option value="Store Pickup">Store Pickup</option>
+                        <option value="COD">COD (Cash on Delivery)</option>
+                        <option value="Fast Delivery">Fast Delivery</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Shipping Address</label>
+                <input type="text" id="cust-address" placeholder="Enter full address for delivery">
+            </div>
+
+            <div class="input-group">
+                <label>Payment Method</label>
+                <select id="pay-method">
+                    <option value="cash">Cash</option>
+                    <option value="card">Card Payment</option>
+                    <option value="bank">Bank Transfer</option>
+                    <option value="online">Online / QR</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Amount Received</label>
+                <input type="number" id="amt-received" placeholder="0.00" oninput="calcChange()">
+            </div>
+
+            <div class="input-group">
+                <label>Change</label>
+                <input type="text" id="amt-change" value="Rs. 0.00" disabled
+                    style="background: var(--bg-sidebar); border-style: dashed;">
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:20px;">
+                <button class="btn btn-primary"
+                    style="justify-content:center; padding:16px; flex-direction:column; height:auto; gap:4px;"
+                    onclick="finalizeSale('direct')">
+                    <i class="fas fa-money-bill-wave" style="font-size:18px;"></i>
+                    <span>DIRECT SALE</span>
+                </button>
+                <button class="btn btn-secondary"
+                    style="justify-content:center; padding:16px; flex-direction:column; height:auto; gap:4px; border-color:var(--primary); color:var(--primary);"
+                    onclick="finalizeSale('order')">
+                    <i class="fas fa-shipping-fast" style="font-size:18px;"></i>
+                    <span>PLACE ORDER</span>
+                </button>
+            </div>
+            <p style="text-align:center; font-size:11px; color:var(--text-muted); margin-top:12px;">Direct Sale adds to
+                Today's Revenue. Place Order saves as Pending.</p>
+        </div>
+    </div>
+
+    <!-- JS Scripts -->
+    <script src="js/db.js"></script>
+    <script>
+        let cart = [];
+        let allProducts = [];
+        let currentCust = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initPOS();
+            generateOrderID();
+        });
+
+        function generateOrderID() {
+            const id = 'ORD-' + Math.floor(Math.random() * 9000 + 1000);
+            document.getElementById('order-id-display').textContent = 'ID: #' + id;
+            return id;
+        }
+
+        async function initPOS() {
+            allProducts = await DB.getAllInventory();
+            const categories = await DB.getAllCategories();
+            const customers = await DB.getAllCustomers();
+
+            renderCategories(categories);
+            renderProducts(allProducts);
+
+            // Setup customer datalist
+            const datalist = document.getElementById('cust-list');
+            customers.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.name;
+                opt.textContent = `${c.custId} | ${c.phone}`;
+                datalist.appendChild(opt);
+            });
+
+            // Search logic
+            document.getElementById('p-search').addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = allProducts.filter(p => p.name.toLowerCase().includes(term));
+                renderProducts(filtered);
+            });
+
+            // Customer check
+            document.getElementById('cust-name').addEventListener('input', async (e) => {
+                const val = e.target.value;
+                const customers = await DB.getAllCustomers();
+                let cust = customers.find(c => c.name === val || c.custId === val || c.phone === val);
+                const alert = document.getElementById('backlist-warning');
+                const loyaltyTag = document.getElementById('loyalty-tag');
+                const loyaltyVal = document.getElementById('loyalty-val');
+                const loyaltySection = document.getElementById('loyalty-section');
+
+                if (cust) {
+                    currentCust = cust;
+                    alert.style.display = cust.isBlacklisted ? 'flex' : 'none';
+                    loyaltyTag.style.display = 'flex';
+                    loyaltyVal.textContent = cust.loyaltyPoints || 0;
+
+                    // 10 points = Rs. 5, so 1 point = Rs. 0.5
+                    const pointsValue = (cust.loyaltyPoints || 0) * 0.5;
+                    document.getElementById('max-pts-val').textContent = pointsValue.toLocaleString();
+
+                    loyaltySection.style.display = (cust.loyaltyPoints >= 10) ? 'block' : 'none';
+                } else {
+                    currentCust = null;
+                    alert.style.display = 'none';
+                    loyaltyTag.style.display = 'none';
+                    loyaltySection.style.display = 'none';
+                    document.getElementById('loyalty-applied-cash').value = 0;
+                }
+                updateCartUI();
+            });
+        }
+
+        function renderCategories(categories) {
+            const container = document.getElementById('categoryTabs');
+            categories.forEach(cat => {
+                const chip = document.createElement('div');
+                chip.className = 'cat-chip';
+                chip.textContent = cat.name;
+                chip.dataset.category = cat.name;
+                chip.onclick = () => filterByCategory(cat.name, chip);
+                container.appendChild(chip);
+            });
+        }
+
+        function filterByCategory(catName, chip) {
+            document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+
+            if (catName === 'all') {
+                renderProducts(allProducts);
+            } else {
+                const filtered = allProducts.filter(p => p.category === catName);
+                renderProducts(filtered);
+            }
+        }
+
+        function renderProducts(products) {
+            const grid = document.getElementById('productGrid');
+            if (products.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-dim);"><i class="fas fa-search" style="font-size: 40px; margin-bottom: 16px;"></i><p>No products found</p></div>';
+                return;
+            }
+
+            grid.innerHTML = '';
+            products.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = `
+                    <div class="img-placeholder"><i class="fas fa-box"></i></div>
+                    <div class="p-name" title="${p.name}">${p.name}</div>
+                    ${p.size ? `<div class="p-size">${p.size}</div>` : ''}
+                    <div class="p-price">Rs. ${parseFloat(p.sellPrice).toLocaleString()}</div>
+                    <div class="p-stock">Stock: ${p.stock}</div>
+                `;
+                card.onclick = () => addToCart(p);
+                grid.appendChild(card);
+            });
+        }
+
+        function addToCart(product) {
+            if (product.stock <= 0) {
+                alert('Out of stock!');
+                return;
+            }
+
+            const existing = cart.find(i => i.id === product.id);
+            if (existing) {
+                if (existing.qty < product.stock) {
+                    existing.qty++;
+                } else {
+                    alert('Insufficient stock!');
+                }
+            } else {
+                cart.push({ ...product, qty: 1 });
+            }
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cartItems');
+            const subTotalSpan = document.getElementById('sub-total');
+            const grandTotalSpan = document.getElementById('grand-total');
+            const payBtn = document.getElementById('pay-btn');
+
+            const discountPercent = parseFloat(document.getElementById('order-discount').value) || 0;
+            const deliveryCharge = parseFloat(document.getElementById('order-delivery').value) || 0;
+
+            if (cart.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-dim);"><i class="fas fa-shopping-basket" style="font-size: 32px; margin-bottom: 12px;"></i><p>Cart is empty</p></div>';
+                subTotalSpan.textContent = 'Rs. 0.00';
+                grandTotalSpan.textContent = 'Rs. 0.00';
+                payBtn.disabled = true;
+                return;
+            }
+
+            container.innerHTML = '';
+            let subtotal = 0;
+
+            cart.forEach((item, index) => {
+                const itemTotal = item.sellPrice * item.qty;
+                subtotal += itemTotal;
+
+                const div = document.createElement('div');
+                div.className = 'cart-item';
+                div.innerHTML = `
+                    <div class="cart-item-info">
+                        <h4>${item.name}</h4>
+                        <p>Rs. ${parseFloat(item.sellPrice).toLocaleString()} x ${item.qty}</p>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button class="btn btn-secondary" style="padding:4px 8px;" onclick="changeQty(${index}, -1)">-</button>
+                        <span style="font-weight:600;">${item.qty}</span>
+                        <button class="btn btn-secondary" style="padding:4px 8px;" onclick="changeQty(${index}, 1)">+</button>
+                        <button class="btn btn-secondary" style="color:var(--danger); padding:4px 8px; margin-left:8px;" onclick="removeFromCart(${index})"><i class="fas fa-times"></i></button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            const loyaltyAppliedCash = parseFloat(document.getElementById('loyalty-applied-cash').value) || 0;
+
+            const discountAmount = subtotal * (discountPercent / 100);
+            const total = (subtotal - discountAmount - loyaltyAppliedCash) + deliveryCharge;
+
+            subTotalSpan.textContent = `Rs. ${subtotal.toLocaleString()}`;
+            grandTotalSpan.textContent = `Rs. ${total.toLocaleString()}`;
+            payBtn.disabled = false;
+        }
+
+        function changeQty(index, delta) {
+            const item = cart[index];
+            const original = allProducts.find(p => p.id === item.id);
+
+            if (delta > 0 && item.qty >= original.stock) {
+                alert('Insufficient stock!');
+                return;
+            }
+
+            item.qty += delta;
+            if (item.qty <= 0) {
+                cart.splice(index, 1);
+            }
+            updateCartUI();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartUI();
+        }
+
+        function clearCart() {
+            if (confirm('Clear entire cart?')) {
+                cart = [];
+                document.getElementById('cust-name').value = '';
+                document.getElementById('order-discount').value = 0;
+                document.getElementById('order-delivery').value = 0;
+                document.getElementById('loyalty-applied-cash').value = 0; // Clear applied loyalty
+                updateCartUI();
+            }
+        }
+
+        function openCheckout() {
+            const subtotal = cart.reduce((sum, i) => sum + (i.sellPrice * i.qty), 0);
+            const discountPercent = parseFloat(document.getElementById('order-discount').value) || 0;
+            const deliveryCharge = parseFloat(document.getElementById('order-delivery').value) || 0;
+            const loyaltyAppliedCash = parseFloat(document.getElementById('loyalty-applied-cash').value) || 0;
+            const total = (subtotal * (1 - discountPercent / 100)) + deliveryCharge - loyaltyAppliedCash;
+
+            document.getElementById('modal-total').textContent = `Rs. ${total.toLocaleString()}`;
+            document.getElementById('checkoutModal').style.display = 'flex';
+            document.getElementById('amt-received').value = '';
+            document.getElementById('amt-change').value = 'Rs. 0.00';
+        }
+
+        async function saveDraftOrder() {
+            if (cart.length === 0) return alert('Cart is empty!');
+
+            const subtotal = cart.reduce((sum, i) => sum + (i.sellPrice * i.qty), 0);
+            const discount = parseFloat(document.getElementById('order-discount').value) || 0;
+            const delivery = parseFloat(document.getElementById('order-delivery').value) || 0;
+            const loyaltyAppliedCash = parseFloat(document.getElementById('loyalty-applied-cash').value) || 0;
+            const total = (subtotal * (1 - discount / 100)) + delivery - loyaltyAppliedCash;
+
+            const orderData = {
+                orderId: document.getElementById('order-id-display').textContent.split('#')[1],
+                customer: document.getElementById('cust-name').value || 'Guest',
+                items: cart,
+                total: total,
+                status: 'pending',
+                paymentStatus: 'pending'
+            };
+
+            await DB.addOrder(orderData);
+            alert('Order saved as Draft!');
+            window.location.reload();
+        }
+
+        function calcChange() {
+            const subtotal = cart.reduce((sum, i) => sum + (i.sellPrice * i.qty), 0);
+            const discountPercent = parseFloat(document.getElementById('order-discount').value) || 0;
+            const deliveryCharge = parseFloat(document.getElementById('order-delivery').value) || 0;
+            const loyaltyAppliedCash = parseFloat(document.getElementById('loyalty-applied-cash').value) || 0;
+            const total = (subtotal * (1 - discountPercent / 100)) + deliveryCharge - loyaltyAppliedCash;
+
+            const received = parseFloat(document.getElementById('amt-received').value) || 0;
+            const change = received - total;
+            document.getElementById('amt-change').value = change >= 0 ? `Rs. ${change.toLocaleString()}` : `- Rs. ${Math.abs(change).toLocaleString()}`;
+        }
+
+        function handleDeliveryChange() {
+            const method = document.getElementById('delivery-method').value;
+            const payMethod = document.getElementById('pay-method');
+
+            if (method === 'COD') {
+                payMethod.value = 'cash';
+                payMethod.disabled = true;
+            } else {
+                payMethod.disabled = false;
+            }
+        }
+
+        async function finalizeSale(type) {
+            const subtotal = cart.reduce((sum, i) => sum + (i.sellPrice * i.qty), 0);
+            const discountPercent = parseFloat(document.getElementById('order-discount').value) || 0;
+            const deliveryCharge = parseFloat(document.getElementById('order-delivery').value) || 0;
+            const loyaltyAppliedCash = parseFloat(document.getElementById('loyalty-applied-cash').value) || 0;
+            const total = (subtotal * (1 - discountPercent / 100)) + deliveryCharge - loyaltyAppliedCash;
+            const buyTotal = cart.reduce((sum, i) => sum + (i.buyPrice * i.qty), 0);
+
+            const customerName = document.getElementById('cust-name').value || 'Guest';
+            const customerPhone = document.getElementById('cust-phone').value;
+            const customerAddress = document.getElementById('cust-address').value;
+            const deliveryMethod = document.getElementById('delivery-method').value;
+            const payMethod = document.getElementById('pay-method').value;
+            const orderId = document.getElementById('order-id-display').textContent.split('#')[1];
+
+            // 1. Loyalty accrual calculation (Rs. 2000 Cumulative Spend = 10 Points)
+            if (currentCust) {
+                const oldSpent = currentCust.totalSpent || 0;
+                const newSpent = oldSpent + total;
+                const pointsEarned = (Math.floor(newSpent / 2000) - Math.floor(oldSpent / 2000)) * 10;
+
+                if (pointsEarned > 0) {
+                    currentCust.loyaltyPoints = (currentCust.loyaltyPoints || 0) + pointsEarned;
+                    await DB.updateCustomerPoints(currentCust.id, currentCust.loyaltyPoints);
+                }
+            }
+
+            // 2. Loyalty deduction if used (10pts = Rs 5 value)
+            if (currentCust) {
+                const usedCash = parseFloat(document.getElementById('loyalty-applied-cash').value) || 0;
+                if (usedCash > 0) {
+                    const pointsToDeduct = Math.ceil(usedCash * 2); // 1 Rs = 2 Pts
+                    currentCust.loyaltyPoints -= pointsToDeduct;
+                    await DB.updateCustomerPoints(currentCust.id, currentCust.loyaltyPoints);
+                }
+            }
+
+            if (type === 'direct') {
+                // ADD TO SALES TABLE ONLY
+                await DB.addSale({
+                    items: cart,
+                    total: total,
+                    buyTotal: buyTotal,
+                    discount: discountPercent,
+                    delivery: deliveryCharge,
+                    loyaltyDiscount: loyaltyAppliedCash,
+                    date: new Date().toISOString(),
+                    customer: customerName,
+                    customerId: currentCust ? currentCust.custId : 'Guest',
+                    customerPhone: currentCust ? currentCust.phone : 'N/A',
+                    paymentMethod: payMethod
+                });
+                alert('Direct Sale completed & Revenue updated!');
+            } else {
+                // ADD TO ORDERS TABLE ONLY
+                let orderStatus = 'Pending';
+                let paymentStatus = 'pending';
+
+                if (deliveryMethod === 'COD') {
+                    orderStatus = 'Pending';
+                    paymentStatus = 'pending';
+                } else {
+                    orderStatus = (deliveryMethod === 'Store Pickup') ? 'Paid' : 'Pending';
+                    paymentStatus = 'paid';
+
+                    // IF ALREADY PAID via Fast Delivery or Store Pickup, record as sale too
+                    await DB.addSale({
+                        items: cart,
+                        total: total,
+                        buyTotal: buyTotal,
+                        discount: discountPercent,
+                        delivery: deliveryCharge,
+                        loyaltyDiscount: loyaltyAppliedCash,
+                        date: new Date().toISOString(),
+                        customer: customerName,
+                        customerId: currentCust ? currentCust.custId : 'Guest',
+                        customerPhone: currentCust ? currentCust.phone : 'N/A',
+                        paymentMethod: payMethod
+                    });
+                }
+
+                await DB.addOrder({
+                    orderId: orderId,
+                    customer: customerName,
+                    customerId: currentCust ? currentCust.custId : 'Guest',
+                    phone: customerPhone || 'N/A',
+                    address: customerAddress || 'N/A',
+                    items: cart,
+                    total: total,
+                    buyTotal: buyTotal,
+                    discount: discountPercent,
+                    delivery: deliveryCharge,
+                    loyaltyDiscount: loyaltyAppliedCash,
+                    status: orderStatus,
+                    paymentStatus: paymentStatus,
+                    deliveryMethod: deliveryMethod
+                });
+                alert('Order #' + orderId + ' Placed Successfully!');
+            }
+
+            window.location.reload();
+        }
+
+        function applyLoyalty() {
+            if (!currentCust) return;
+            const pts = currentCust.loyaltyPoints || 0;
+            // Value: 10 pts = Rs. 5 => CashValue = Pts * 0.5
+            const cashValue = pts * 0.5;
+            document.getElementById('loyalty-applied-cash').value = cashValue;
+            alert(`Applied Rs. ${cashValue} loyalty discount!`);
+            updateCartUI();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>
